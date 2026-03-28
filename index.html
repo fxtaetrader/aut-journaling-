@@ -1,0 +1,769 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FX TAE AI | Automated Trading Journal</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: #f5f7fa;
+            color: #1a1a2e;
+        }
+
+        .connection-panel {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 20px;
+            padding: 2rem;
+            margin: 1rem;
+            color: white;
+        }
+
+        .connection-status {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.5rem 1rem;
+            background: rgba(255,255,255,0.2);
+            border-radius: 50px;
+            margin-bottom: 1rem;
+        }
+
+        .status-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: #ef4444;
+            animation: pulse 2s infinite;
+        }
+
+        .status-dot.connected {
+            background: #22c55e;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .broker-selector {
+            display: flex;
+            gap: 1rem;
+            margin: 1.5rem 0;
+            flex-wrap: wrap;
+        }
+
+        .broker-btn {
+            padding: 0.75rem 1.5rem;
+            background: rgba(255,255,255,0.15);
+            border: 1px solid rgba(255,255,255,0.3);
+            border-radius: 12px;
+            color: white;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-weight: 500;
+        }
+
+        .broker-btn.active {
+            background: white;
+            color: #667eea;
+            border-color: white;
+        }
+
+        .credentials-form {
+            display: none;
+            margin-top: 1.5rem;
+        }
+
+        .credentials-form.active {
+            display: block;
+        }
+
+        .input-group {
+            display: flex;
+            gap: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .input-group input {
+            flex: 1;
+            padding: 0.875rem;
+            border: none;
+            border-radius: 12px;
+            background: rgba(255,255,255,0.95);
+            font-size: 0.9rem;
+            min-width: 200px;
+        }
+
+        .connect-btn {
+            padding: 0.875rem 2rem;
+            background: white;
+            color: #667eea;
+            border: none;
+            border-radius: 12px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-size: 0.9rem;
+        }
+
+        .connect-btn:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(0,0,0,0.2);
+        }
+
+        .connect-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 1.5rem;
+            padding: 1.5rem;
+        }
+
+        .card {
+            background: white;
+            border-radius: 20px;
+            padding: 1.5rem;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            transition: transform 0.2s;
+        }
+
+        .card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+        }
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.25rem;
+            padding-bottom: 0.75rem;
+            border-bottom: 2px solid #e5e7eb;
+        }
+
+        .card-header h3 {
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: #1f2937;
+        }
+
+        .stat-value {
+            font-size: 1.75rem;
+            font-weight: 800;
+            color: #3b82f6;
+        }
+
+        .profit {
+            color: #22c55e;
+        }
+
+        .loss {
+            color: #ef4444;
+        }
+
+        .account-stats {
+            display: grid;
+            gap: 0.75rem;
+        }
+
+        .account-stats div {
+            display: flex;
+            justify-content: space-between;
+            padding: 0.5rem;
+            background: #f9fafb;
+            border-radius: 10px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.85rem;
+        }
+
+        th, td {
+            padding: 0.75rem 0.5rem;
+            text-align: left;
+            border-bottom: 1px solid #e5e7eb;
+        }
+
+        th {
+            font-weight: 600;
+            color: #6b7280;
+            font-size: 0.7rem;
+            text-transform: uppercase;
+        }
+
+        .risk-badge {
+            padding: 0.25rem 0.75rem;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            display: inline-block;
+        }
+
+        .risk-high {
+            background: #fee2e2;
+            color: #ef4444;
+        }
+
+        .risk-medium {
+            background: #fef3c7;
+            color: #f59e0b;
+        }
+
+        .risk-low {
+            background: #dcfce7;
+            color: #22c55e;
+        }
+
+        .sync-indicator {
+            position: fixed;
+            bottom: 1rem;
+            right: 1rem;
+            background: white;
+            padding: 0.5rem 1rem;
+            border-radius: 50px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            font-size: 0.75rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            z-index: 1000;
+        }
+
+        .toast {
+            position: fixed;
+            bottom: 80px;
+            right: 20px;
+            background: white;
+            padding: 12px 20px;
+            border-radius: 12px;
+            border-left: 4px solid #22c55e;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            z-index: 2000;
+            animation: slideIn 0.3s ease;
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
+        .loading-spinner {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 2px solid rgba(255,255,255,0.3);
+            border-top-color: white;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        @media (max-width: 768px) {
+            .dashboard-grid {
+                grid-template-columns: 1fr;
+                padding: 1rem;
+            }
+            
+            .input-group {
+                flex-direction: column;
+            }
+            
+            .connection-panel {
+                margin: 0.5rem;
+                padding: 1.5rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="connection-panel">
+        <div class="connection-status">
+            <div class="status-dot" id="connectionDot"></div>
+            <span id="connectionText">Disconnected</span>
+        </div>
+        
+        <h2><i class="fas fa-robot"></i> AI Trading Journal</h2>
+        <p>Connect your broker account for automatic trade tracking and AI analysis</p>
+        
+        <div class="broker-selector">
+            <button class="broker-btn active" data-broker="mt5">MetaTrader 5</button>
+            <button class="broker-btn" data-broker="exness">Exness</button>
+            <button class="broker-btn" data-broker="xm">XM</button>
+        </div>
+        
+        <div class="credentials-form active" id="mt5Form">
+            <div class="input-group">
+                <input type="text" id="mt5Server" placeholder="Server (e.g., Exness-MT5Real21)" value="Exness-MT5Real21">
+                <input type="number" id="mt5Login" placeholder="Account Number" value="161400839">
+                <input type="password" id="mt5Password" placeholder="Password">
+                <button class="connect-btn" id="connectBtn" onclick="connectToBroker()">
+                    <i class="fas fa-plug"></i> Connect
+                </button>
+            </div>
+            <small style="opacity:0.8; display:block; margin-top:0.75rem;">
+                <i class="fas fa-shield-alt"></i> Your credentials are stored locally and never leave your computer
+            </small>
+        </div>
+    </div>
+    
+    <div class="dashboard-grid" id="dashboard">
+        <div class="card">
+            <div class="card-header">
+                <h3><i class="fas fa-chart-line"></i> Account Overview</h3>
+                <i class="fas fa-sync-alt" onclick="refreshData()" style="cursor: pointer;"></i>
+            </div>
+            <div class="account-stats">
+                <div><strong>Balance:</strong> <span id="balance" class="stat-value">$0.00</span></div>
+                <div><strong>Equity:</strong> <span id="equity">$0.00</span></div>
+                <div><strong>Margin:</strong> <span id="margin">$0.00</span></div>
+                <div><strong>Free Margin:</strong> <span id="freeMargin">$0.00</span></div>
+                <div><strong>Leverage:</strong> <span id="leverage">1:0</span></div>
+                <div><strong>Margin Level:</strong> <span id="marginLevel">0%</span></div>
+            </div>
+        </div>
+        
+        <div class="card">
+            <div class="card-header">
+                <h3><i class="fas fa-shield-alt"></i> Risk Analysis</h3>
+            </div>
+            <div class="account-stats" id="riskAnalysis">
+                <div><strong>Risk per Trade:</strong> <span id="riskPerTrade">0%</span></div>
+                <div><strong>Win Rate:</strong> <span id="winRate">0%</span></div>
+                <div><strong>Profit Factor:</strong> <span id="profitFactor">0</span></div>
+                <div><strong>Max Drawdown:</strong> <span id="maxDrawdown">0%</span></div>
+                <div><strong>Expectancy:</strong> <span id="expectancy">$0.00</span></div>
+                <div><strong>Total Trades:</strong> <span id="totalTrades">0</span></div>
+            </div>
+        </div>
+        
+        <div class="card" style="grid-column: span 2;">
+            <div class="card-header">
+                <h3><i class="fas fa-chart-simple"></i> Open Positions</h3>
+                <span id="positionsCount">0 positions</span>
+            </div>
+            <div style="overflow-x: auto;">
+                <table id="openPositionsTable">
+                    <thead>
+                        <tr><th>Symbol</th><th>Type</th><th>Volume</th><th>Open Price</th><th>Current</th><th>Profit</th><th>SL</th><th>TP</th></tr>
+                    </thead>
+                    <tbody id="openPositionsBody">
+                        <tr><td colspan="8" style="text-align: center; padding: 2rem;">No open positions</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        
+        <div class="card" style="grid-column: span 2;">
+            <div class="card-header">
+                <h3><i class="fas fa-history"></i> Trade History</h3>
+                <span id="historyCount">0 trades</span>
+            </div>
+            <div style="overflow-x: auto; max-height: 400px; overflow-y: auto;">
+                <table id="historyTable">
+                    <thead>
+                        <tr><th>Date</th><th>Symbol</th><th>Type</th><th>Volume</th><th>Open</th><th>Close</th><th>Profit</th></tr>
+                    </thead>
+                    <tbody id="historyBody">
+                        <tr><td colspan="7" style="text-align: center; padding: 2rem;">No trade history</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        
+        <div class="card" style="grid-column: span 2;">
+            <div class="card-header">
+                <h3><i class="fas fa-chart-line"></i> Equity Curve</h3>
+                <div style="display: flex; gap: 0.5rem;">
+                    <button class="period-btn" data-period="week">Week</button>
+                    <button class="period-btn active" data-period="month">Month</button>
+                    <button class="period-btn" data-period="year">Year</button>
+                </div>
+            </div>
+            <canvas id="equityChart" height="300" style="max-height: 300px;"></canvas>
+        </div>
+    </div>
+    
+    <div class="sync-indicator" id="syncIndicator">
+        <i class="fas fa-circle-notch fa-spin"></i>
+        <span>Auto-sync active (30s)</span>
+    </div>
+
+    <script>
+        // Configuration
+        const BRIDGE_URL = 'http://localhost:3000';
+        let autoSyncInterval = null;
+        let isConnected = false;
+        let currentAccountData = null;
+        let currentPositions = [];
+        let currentHistory = [];
+        let equityChart = null;
+        
+        // Check if bridge is running
+        async function checkBridgeConnection() {
+            try {
+                const response = await fetch(`${BRIDGE_URL}/api/account`);
+                if (response.ok) {
+                    updateConnectionStatus(true, 'Connected to MT5 Bridge');
+                    return true;
+                }
+            } catch (error) {
+                updateConnectionStatus(false, 'Demo Mode (MT5 Bridge not detected)');
+                return false;
+            }
+            return false;
+        }
+        
+        // Connect to broker
+        async function connectToBroker() {
+            const server = document.getElementById('mt5Server').value;
+            const login = document.getElementById('mt5Login').value;
+            const password = document.getElementById('mt5Password').value;
+            const connectBtn = document.getElementById('connectBtn');
+            
+            if (!server || !login || !password) {
+                showToast('Please fill all fields', 'error');
+                return;
+            }
+            
+            connectBtn.disabled = true;
+            connectBtn.innerHTML = '<span class="loading-spinner"></span> Connecting...';
+            
+            try {
+                const response = await fetch(`${BRIDGE_URL}/api/connect`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ server, login, password, type: 'mt5' })
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    showToast(`✅ Connected to ${server}`, 'success');
+                    updateConnectionStatus(true, `Connected to ${server}`);
+                    isConnected = true;
+                    
+                    // Store credentials locally (encrypted in production)
+                    localStorage.setItem('mt5_credentials', JSON.stringify({
+                        server, login, connected: true, timestamp: Date.now()
+                    }));
+                    
+                    // Start auto-sync
+                    startAutoSync();
+                    await refreshData();
+                } else {
+                    throw new Error('Connection failed');
+                }
+            } catch (error) {
+                console.error('Connection error:', error);
+                showToast('⚠️ Bridge not running. Using demo data.', 'warning');
+                updateConnectionStatus(false, 'Demo Mode - Bridge not detected');
+                startAutoSync();
+                loadMockData();
+            } finally {
+                connectBtn.disabled = false;
+                connectBtn.innerHTML = '<i class="fas fa-plug"></i> Connect';
+            }
+        }
+        
+        // Refresh all data
+        async function refreshData() {
+            if (!isConnected) {
+                loadMockData();
+                return;
+            }
+            
+            try {
+                const [accountRes, positionsRes, historyRes] = await Promise.all([
+                    fetch(`${BRIDGE_URL}/api/account`),
+                    fetch(`${BRIDGE_URL}/api/positions`),
+                    fetch(`${BRIDGE_URL}/api/history`)
+                ]);
+                
+                if (accountRes.ok) currentAccountData = await accountRes.json();
+                if (positionsRes.ok) currentPositions = await positionsRes.json();
+                if (historyRes.ok) currentHistory = await historyRes.json();
+                
+                updateUI();
+            } catch (error) {
+                console.error('Refresh error:', error);
+                loadMockData();
+            }
+        }
+        
+        // Load mock data (fallback)
+        function loadMockData() {
+            currentAccountData = {
+                balance: 10450.75,
+                equity: 10620.30,
+                margin: 245.50,
+                freeMargin: 10374.80,
+                leverage: 100,
+                marginLevel: 4325
+            };
+            
+            currentPositions = [
+                { symbol: "EURUSD", type: "buy", volume: 0.2, openPrice: 1.09250, currentPrice: 1.09420, profit: 34.00, stopLoss: 1.08900, takeProfit: 1.09800 },
+                { symbol: "XAUUSD", type: "buy", volume: 0.1, openPrice: 2150.00, currentPrice: 2158.50, profit: 85.00, stopLoss: 2140.00, takeProfit: 2170.00 }
+            ];
+            
+            currentHistory = [
+                { date: "2024-03-28", time: "10:30", symbol: "EURUSD", type: "buy", volume: 0.3, openPrice: 1.09100, closePrice: 1.09350, profit: 75.00, commission: 0.75, swap: 0.12, isWin: true },
+                { date: "2024-03-27", time: "14:15", symbol: "GBPUSD", type: "sell", volume: 0.2, openPrice: 1.26500, closePrice: 1.26200, profit: 60.00, commission: 0.50, swap: -0.08, isWin: true },
+                { date: "2024-03-26", time: "09:45", symbol: "USDJPY", type: "buy", volume: 0.1, openPrice: 151.20, closePrice: 150.80, profit: -40.00, commission: 0.25, swap: -0.05, isWin: false },
+                { date: "2024-03-25", time: "16:20", symbol: "XAUUSD", type: "buy", volume: 0.2, openPrice: 2165.00, closePrice: 2175.00, profit: 200.00, commission: 1.00, swap: -0.15, isWin: true },
+                { date: "2024-03-22", time: "11:00", symbol: "BTCUSD", type: "sell", volume: 0.05, openPrice: 65000, closePrice: 64500, profit: 250.00, commission: 0.50, swap: 0, isWin: true }
+            ];
+            
+            updateUI();
+        }
+        
+        // Update all UI components
+        function updateUI() {
+            updateAccountDisplay();
+            updatePositionsDisplay();
+            updateHistoryDisplay();
+            updateRiskAnalysis();
+            updateEquityCurve();
+        }
+        
+        function updateAccountDisplay() {
+            if (!currentAccountData) return;
+            document.getElementById('balance').textContent = `$${currentAccountData.balance.toFixed(2)}`;
+            document.getElementById('equity').textContent = `$${currentAccountData.equity.toFixed(2)}`;
+            document.getElementById('margin').textContent = `$${currentAccountData.margin.toFixed(2)}`;
+            document.getElementById('freeMargin').textContent = `$${currentAccountData.freeMargin.toFixed(2)}`;
+            document.getElementById('leverage').textContent = `1:${currentAccountData.leverage}`;
+            document.getElementById('marginLevel').textContent = `${currentAccountData.marginLevel.toFixed(1)}%`;
+        }
+        
+        function updatePositionsDisplay() {
+            const tbody = document.getElementById('openPositionsBody');
+            const countSpan = document.getElementById('positionsCount');
+            countSpan.textContent = `${currentPositions.length} positions`;
+            
+            if (!currentPositions.length) {
+                tbody.innerHTML = '<tr><td colspan="8" style="text-align: center; padding: 2rem;">No open positions</td></tr>';
+                return;
+            }
+            
+            tbody.innerHTML = currentPositions.map(pos => `
+                <tr>
+                    <td><strong>${pos.symbol}</strong></td>
+                    <td style="color: ${pos.type === 'buy' ? '#22c55e' : '#ef4444'}">${pos.type.toUpperCase()}</td>
+                    <td>${pos.volume}</td>
+                    <td>${pos.openPrice}</td>
+                    <td>${pos.currentPrice}</td>
+                    <td class="${pos.profit >= 0 ? 'profit' : 'loss'}">${pos.profit >= 0 ? '+' : ''}$${pos.profit}</td>
+                    <td>${pos.stopLoss || '-'}</td>
+                    <td>${pos.takeProfit || '-'}</td>
+                </tr>
+            `).join('');
+        }
+        
+        function updateHistoryDisplay() {
+            const tbody = document.getElementById('historyBody');
+            const countSpan = document.getElementById('historyCount');
+            countSpan.textContent = `${currentHistory.length} trades`;
+            
+            if (!currentHistory.length) {
+                tbody.innerHTML = '<tr><td colspan="7" style="text-align: center; padding: 2rem;">No trade history</td></tr>';
+                return;
+            }
+            
+            tbody.innerHTML = currentHistory.slice(0, 20).map(trade => `
+                <tr>
+                    <td>${trade.date}</td>
+                    <td><strong>${trade.symbol}</strong></td>
+                    <td style="color: ${trade.type === 'buy' ? '#22c55e' : '#ef4444'}">${trade.type.toUpperCase()}</td>
+                    <td>${trade.volume}</td>
+                    <td>${trade.openPrice}</td>
+                    <td>${trade.closePrice}</td>
+                    <td class="${trade.profit >= 0 ? 'profit' : 'loss'}">${trade.profit >= 0 ? '+' : ''}$${Math.abs(trade.profit).toFixed(2)}</td>
+                </tr>
+            `).join('');
+        }
+        
+        function updateRiskAnalysis() {
+            if (!currentHistory.length) return;
+            
+            const winningTrades = currentHistory.filter(t => t.profit > 0);
+            const losingTrades = currentHistory.filter(t => t.profit < 0);
+            const winRate = (winningTrades.length / currentHistory.length * 100).toFixed(1);
+            
+            const totalProfit = winningTrades.reduce((sum, t) => sum + t.profit, 0);
+            const totalLoss = Math.abs(losingTrades.reduce((sum, t) => sum + t.profit, 0));
+            const profitFactor = totalLoss > 0 ? (totalProfit / totalLoss).toFixed(2) : totalProfit > 0 ? '∞' : '0';
+            
+            // Calculate max drawdown
+            let peak = currentAccountData?.balance || 10000;
+            let maxDrawdown = 0;
+            let runningBalance = peak;
+            
+            currentHistory.forEach(trade => {
+                runningBalance += trade.profit;
+                if (runningBalance > peak) peak = runningBalance;
+                const drawdown = ((peak - runningBalance) / peak) * 100;
+                if (drawdown > maxDrawdown) maxDrawdown = drawdown;
+            });
+            
+            // Calculate risk per trade
+            const avgLoss = losingTrades.length ? totalLoss / losingTrades.length : 0;
+            const riskPerTrade = currentAccountData?.balance ? (avgLoss / currentAccountData.balance * 100).toFixed(1) : 0;
+            
+            // Calculate expectancy
+            const avgWin = winningTrades.length ? totalProfit / winningTrades.length : 0;
+            const winProb = winRate / 100;
+            const expectancy = (avgWin * winProb) - (avgLoss * (1 - winProb));
+            
+            document.getElementById('riskPerTrade').innerHTML = `<span class="risk-badge ${riskPerTrade > 2 ? 'risk-high' : riskPerTrade > 1 ? 'risk-medium' : 'risk-low'}">${riskPerTrade}%</span>`;
+            document.getElementById('winRate').textContent = `${winRate}%`;
+            document.getElementById('profitFactor').textContent = profitFactor;
+            document.getElementById('maxDrawdown').textContent = `${maxDrawdown.toFixed(1)}%`;
+            document.getElementById('expectancy').textContent = `$${expectancy.toFixed(2)}`;
+            document.getElementById('totalTrades').textContent = currentHistory.length;
+        }
+        
+        function updateEquityCurve() {
+            if (!currentHistory.length) return;
+            
+            let balance = currentAccountData?.balance || 10000;
+            const equityData = [balance];
+            const labels = ['Start'];
+            
+            // Calculate cumulative equity
+            [...currentHistory].reverse().forEach(trade => {
+                balance -= trade.profit;
+                equityData.unshift(balance);
+                labels.unshift(trade.date);
+            });
+            
+            if (equityChart) equityChart.destroy();
+            
+            const ctx = document.getElementById('equityChart').getContext('2d');
+            equityChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Account Equity',
+                        data: equityData,
+                        borderColor: '#3b82f6',
+                        backgroundColor: 'rgba(59,130,246,0.1)',
+                        fill: true,
+                        tension: 0.3,
+                        pointRadius: 2,
+                        pointHoverRadius: 6
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: true,
+                    plugins: {
+                        tooltip: {
+                            callbacks: {
+                                label: (ctx) => `Balance: $${ctx.raw.toFixed(2)}`
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            ticks: {
+                                callback: (v) => `$${v}`
+                            }
+                        }
+                    }
+                }
+            });
+        }
+        
+        function updateConnectionStatus(connected, message) {
+            const dot = document.getElementById('connectionDot');
+            const text = document.getElementById('connectionText');
+            isConnected = connected;
+            
+            if (connected) {
+                dot.classList.add('connected');
+            } else {
+                dot.classList.remove('connected');
+            }
+            text.textContent = message;
+        }
+        
+        function startAutoSync() {
+            if (autoSyncInterval) clearInterval(autoSyncInterval);
+            autoSyncInterval = setInterval(() => {
+                refreshData();
+                console.log('🔄 Auto-sync triggered');
+            }, 30000);
+        }
+        
+        function showToast(message, type = 'info') {
+            const toast = document.createElement('div');
+            toast.className = 'toast';
+            const icon = type === 'error' ? '❌' : type === 'warning' ? '⚠️' : '✅';
+            toast.innerHTML = `${icon} ${message}`;
+            document.body.appendChild(toast);
+            setTimeout(() => toast.remove(), 3000);
+        }
+        
+        // Initialize
+        async function init() {
+            await checkBridgeConnection();
+            loadMockData();
+            startAutoSync();
+            
+            // Period buttons
+            document.querySelectorAll('.period-btn').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    document.querySelectorAll('.period-btn').forEach(b => b.classList.remove('active'));
+                    this.classList.add('active');
+                    updateEquityCurve();
+                });
+            });
+        }
+        
+        // Broker selector
+        document.querySelectorAll('.broker-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('.broker-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                const broker = btn.dataset.broker;
+                document.querySelectorAll('.credentials-form').forEach(f => f.classList.remove('active'));
+                document.getElementById(`${broker}Form`).classList.add('active');
+            });
+        });
+        
+        // Start
+        init();
+        
+        // Expose functions globally
+        window.connectToBroker = connectToBroker;
+        window.refreshData = refreshData;
+    </script>
+</body>
+</html>
